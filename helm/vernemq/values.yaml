@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  repository: vernemq/vernemq
-  tag: 1.10.2-1-alpine
+  repository: 418915376963.dkr.ecr.ap-south-1.amazonaws.com/dev-vernemq:1.2
+  tag: 1.2
   pullPolicy: IfNotPresent
 
 nameOverride: ""

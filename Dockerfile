@@ -10,6 +10,7 @@ WORKDIR /vernemq
 
 # Defaults
 ENV DOCKER_VERNEMQ_KUBERNETES_LABEL_SELECTOR="app=vernemq" \
+    DOCKER_VERNEMQ_ACCEPT_EULA=yes \
     DOCKER_VERNEMQ_LOG__CONSOLE=console \
     PATH="/vernemq/bin:$PATH" \
     VERNEMQ_VERSION="1.10.2"
