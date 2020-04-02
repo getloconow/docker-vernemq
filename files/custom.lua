@@ -41,9 +41,10 @@ local jwt = require "auth/luajwt/luajwt" --[[
      subscribe_acl TEXT,
      CONSTRAINT vmq_auth_acl_primary_key PRIMARY KEY (mountpoint, client_id, username)
    )
-  ]] function auth_on_register(
-  reg)
-  if reg.username == "N7AcYWuBXdSsADEm8aF6JrFpnOm5Pnv6" and reg.password == "xWinLUb8TWry2kvxc79RkD1fiiJsolrM" then
+  ]] 
+  
+function auth_on_register(reg)
+  if reg.username == "cRqlmWsryumZvmO3bs0Nc2DMiyv0t9L1" and reg.password == "tbSSYbQP8LkaCcANOf628f3Vlkdvdym5" then
     client = mysplit(reg.client_id)
     client_id = client[1]
     auth_token = client[2]
@@ -64,6 +65,7 @@ local jwt = require "auth/luajwt/luajwt" --[[
         {pattern = "stream_stats/+/watch", max_qos = 1},
         {pattern = "all/+/device_disconnect", max_qos = 1},
         {pattern = "chat/+/device", max_qos = 1},
+        {pattern = "device-ping", max_qos = 1},
         {pattern = "stream_stats/+/device", max_qos = 1}
       }
       subscribe_acl = {
@@ -84,8 +86,9 @@ local jwt = require "auth/luajwt/luajwt" --[[
       {pattern = "activity/+/follow", max_qos = 1},
       {pattern = "all/+/device_disconnect", max_qos = 1},
       {pattern = "chat/+/device", max_qos = 1},
+      {pattern = "device-ping", max_qos = 1},
       {pattern = "chat/+/message", max_qos = 1, modifiers = {throttle = 1000}},
-      {pattern = "stream_stats/+/device", max_qos = 1, modifiers = {throttle = 1000}}
+      {pattern = "stream_stats/+/device", max_qos = 1}
     }
     subscribe_acl = {
       {pattern = "activity/+/message", max_qos = 1},
@@ -99,7 +102,7 @@ local jwt = require "auth/luajwt/luajwt" --[[
     mount_point = ""
     cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
     return true
-  elseif reg.username == "2CltqsWxXOaEGVT4zCsouwDzcIF9U6Pn" and reg.password == "EGGYpubZ2TARc1iHmJiBcIJ2qvfSR3D3" then
+  elseif reg.username == "1QGlx7a5OFdtigW4yuso6aH16cJvksyL" and reg.password == "kNfQZkklRofQaF3v2r9mZXncKriPPPcR" then
     publish_acl = {
       {pattern = "activity/+/follow", max_qos = 1},
       {pattern = "chat/+/+/history", max_qos = 1},
@@ -155,13 +158,4 @@ end
 --custom.ensure_pool(config)
 hooks = {
   auth_on_register = auth_on_register
-  --auth_on_publish = auth_on_publish,
-  --auth_on_subscribe = auth_on_subscribe,
-  --on_unsubscribe = on_unsubscribe,
-  --on_client_gone = on_client_gone,
-  --on_client_offline = on_client_offline,
-
-  --auth_on_register_m5 = auth_on_register_m5,
-  --auth_on_publish_m5 = auth_on_publish_m5,
-  --auth_on_subscribe_m5 = auth_on_subscribe_m5,
 }

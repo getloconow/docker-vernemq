@@ -17,10 +17,10 @@ WORKDIR /vernemq
 
 COPY --chown=10000:10000 bin/vernemq.sh /usr/sbin/start_vernemq
 COPY --chown=10000:10000 files/vm.args /vernemq/etc/vm.args
-COPY --chown=10000:10000 files/custom.lua /usr/share/vernemq/lua/auth/custom.lua
-COPY --chown=10000:10000 files/base64.lua /usr/share/vernemq/lua/base64.lua
-RUN mkdir /usr/share/vernemq/lua/auth/luajwt && chown -R 10000:10000 /usr/share/vernemq/lua/auth/luajwt
-COPY --chown=10000:10000 files/luajwt.lua /usr/share/vernemq/lua/auth/luajwt/luajwt.lua
+COPY --chown=10000:10000 files/custom.lua /vernemq/share/lua/auth/custom.lua
+COPY --chown=10000:10000 files/base64.lua /vernemq/share/lua/base64.lua
+RUN mkdir /vernemq/share/lua/auth/luajwt && chown -R 10000:10000 /vernemq/share/lua/auth/luajwt
+COPY --chown=10000:10000 files/luajwt.lua /vernemq/share/lua/auth/luajwt/luajwt.lua
 
 ADD https://github.com/vernemq/vernemq/releases/download/$VERNEMQ_VERSION/vernemq-$VERNEMQ_VERSION.alpine.tar.gz /tmp
 
