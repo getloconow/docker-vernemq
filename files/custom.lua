@@ -180,21 +180,20 @@ function auth_on_publish(pub)
     local decoded_payload = json.decode(mod_payload)
     local user_uid
 
-    if not decoded_payload or string.len(decoded_payload["message"]) > 240 or not decoded_payload["profile"] then
+    if not decoded_payload or string.len(decoded_payload["message"]) > 240 or not decoded_payload["profile"] or not decoded_payload["profile"][uid] then
       return false
     end
 
     user_uid = decoded_payload["profile"]["uid"]
-
     -- verify commands
     if decoded_payload["profile"]["is_streamer"] then
       -- if profile_uid is streamer check for ban in message
       if string.match(decoded_payload["message"], "^/ban ") then
         local tagged_profile = decoded_payload["tagged_profile"]
-        if not tagged_profile then
+        if tagged_profile and tagged_profile["uid"] then
+          cmd(string.format("hmset ban:%s %s %s", stream_id, tagged_profile["uid"], "1"), true)
           return {topic = string.format("chat/%s/command", stream_id), payload = mod_payload, throttle = 1000 }
         end
-        cmd(string.format("hmset ban:%s %s %s", stream_id, tagged_profile["uid"], "1"), true)
         return {topic = string.format("chat/%s/command", stream_id), payload = mod_payload, throttle = 1000 }
       end
     else
