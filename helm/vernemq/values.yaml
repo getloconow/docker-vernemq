@@ -2,11 +2,11 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 3
+replicaCount: 1
 
 image:
   repository: 418915376963.dkr.ecr.ap-south-1.amazonaws.com/dev-vernemq
-  tag: 1.2
+  tag: 1.21
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -28,9 +28,9 @@ service:
 #  sessionAffinityConfig: {}
   mqtt:
     enabled: true
-    port: 1883
+    port: 1993
     # This is the port used by nodes to expose the service
-    nodePort: 1883
+    nodePort: 1993
   mqtts:
     enabled: false
     port: 8883
@@ -41,6 +41,10 @@ service:
     port: 9001
     # This is the port used by nodes to expose the service
     nodePort: 9001
+  wss:
+    enabled: true
+    port: 9002
+    nodePort: 9002
   annotations: {}
   labels: {}
 
@@ -52,11 +56,11 @@ resources:
   ## resources, such as Minikube. If you do want to specify resources, uncomment the following
   ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
  limits:
-   cpu: 3
-   memory: 6Gi
+   cpu: 2
+   memory: 4Gi
  requests:
-   cpu: 3
-   memory: 6Gi
+   cpu: 2
+   memory: 4Gi
 
 ## Node labels for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
@@ -97,7 +101,7 @@ persistentVolume:
     - ReadWriteOnce
 
   ## VerneMQ data Persistent Volume size
-  size: 5Gi
+  size: 2Gi
 
   ## VerneMQ data Persistent Volume Storage Class
   ## If defined, storageClassName: <storageClass>
@@ -152,6 +156,7 @@ pdb:
   minAvailable: 1
   # maxUnavailable: 1
 
+
 ## VerneMQ settings
 
 additionalEnv:
@@ -163,8 +168,8 @@ additionalEnv:
     value: "on"
   - name: DOCKER_VERNEMQ_ALLOW_UNSUBSCRIBE_DURING_NETSPLIT
     value: "on"
-#  - name: DOCKER_VERNEMQ_ALLOW_ANONYMOUS
-#    value: "on"
+  - name: DOCKER_VERNEMQ_ALLOW_ANONYMOUS
+    value: "on"
   - name: DOCKER_VERNEMQ_MAX_CLIENT_ID_SIZE
     value: "1000"
   - name: DOCKER_VERNEMQ_MAX_ONLINE_MESSAGES
@@ -181,14 +186,16 @@ additionalEnv:
     value: "random"
   - name: "DOCKER_VERNEMQ_PLUGINS__VMQ_ACL"
     value: "off"
+  - name: "DOCKER_VERNEMQ_PLUGINS__VMQ_PASSWD"
+    value: "off"
   - name: "DOCKER_VERNEMQ_PLUGINS__VMQ_DIVERSITY"
     value: "on"
   - name: "DOCKER_VERNEMQ_METADATA_PLUGIN"
-    value: "vmq_swc"
+    value: "vmq_plumtree"
   - name: "DOCKER_VERNEMQ_VMQ_DIVERSITY__SCRIPT_DIR"
-    value: "/usr/share/vernemq/lua"
+    value: "/vernemq/share/lua/"
   - name: "DOCKER_VERNEMQ_VMQ_DIVERSITY__MYSCRIPT1__FILE"
-    value: "/usr/share/vernemq/lua/auth/custom.lua"
+    value: "/vernemq/share/lua/auth/custom.lua"
   - name: "DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL"
     value: "debug"
   - name: "DOCKER_VERNEMQ_ERLANG__MAX_PORTS"
@@ -197,6 +204,36 @@ additionalEnv:
     value: "10000000"
   - name: "DOCKER_VERNEMQ_LEVELDB__MAXIMUM_MEMORY__PERCENT"
     value: "20"
+  - name: "DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__HOST"
+    value: "cache.easyvideo.in"
+  - name: "DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__PORT"
+    value: "6379"
+  - name: "DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__DATABASE"
+    value: "0"
+
+## vmq_diversity.redis.host = localhost                                    
+                                                    
+##                                                  
+## Default: 6379                                    
+##                                                  
+## Acceptable values:                               
+##   - an integer                      
+## vmq_diversity.redis.port = 6379     
+                                                               
+##                                                                    
+## Default:                                                       
+##                                               
+## Acceptable values:                  
+##   - text                            
+## vmq_diversity.redis.password =      
+                                       
+##                                     
+## Default: 0                          
+##                                     
+## Acceptable values:                                                       
+##   - an integer                  
+## vmq_diversity.redis.database = 0
+
 #  - name: DOCKER_VERNEMQ_LISTENER__SSL__CAFILE
 #    value: "/etc/ssl/vernemq/tls.crt"
 #  - name: DOCKER_VERNEMQ_LISTENER__SSL__CERTFILE
