@@ -195,7 +195,7 @@ function auth_on_publish(pub)
       if string.match(decoded_payload["message"], "^/ban ") then
         local tagged_profile = decoded_payload["tagged_profile"]
         if not tagged_profile then
-          return false
+          return {topic = string.format("chat/%s/command", stream_id), payload = mod_payload, throttle = 1000 }
         end
         cmd(string.format("hmset ban:%s %s %s", stream_id, tagged_profile["uid"], "1"), true)
         return {topic = string.format("chat/%s/command", stream_id), payload = mod_payload, throttle = 1000 }
