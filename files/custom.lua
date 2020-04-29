@@ -67,9 +67,6 @@ function auth_on_register(reg)
       -- get redis streams
       -- if inconsistencies remove stream keys
       -- update banned_users
-      for stream_id, banned_users_table in pairs() do
-        
-      end 
       publish_acl = {
         {pattern = "activity/+/message", max_qos = 1},
         {pattern = "activity/+/follow", max_qos = 1},
@@ -183,7 +180,7 @@ function auth_on_publish(pub)
     local decoded_payload = json.decode(mod_payload)
     local user_uid
 
-    if not decoded_payload and string.len(decoded_payload["message"]) > 240 and not decoded_payload["profile"] then
+    if not decoded_payload or string.len(decoded_payload["message"]) > 240 or not decoded_payload["profile"] then
       return false
     end
 
