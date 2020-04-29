@@ -16,7 +16,6 @@
 -- provision your database.
 require "auth/auth_commons"
 local jwt = require "auth/luajwt/luajwt"
-local z = 1
 redis.ensure_pool({pool_id = "redis_dev",
 size = 5,
 host = "cache.easyvideo.in",
