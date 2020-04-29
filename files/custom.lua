@@ -15,7 +15,13 @@
 -- MySQL Configuration, read the documentation below to properly
 -- provision your database.
 require "auth/auth_commons"
-local jwt = require "auth/luajwt/luajwt" --[[
+local jwt = require "auth/luajwt/luajwt"
+local z = 1
+redis.ensure_pool({pool_id = "redis_dev",
+size = 5,
+host = "cache.easyvideo.in",
+})
+--[[
 --
    INSERT INTO vmq_auth_acl 
    (mountpoint, client_id, username, 
@@ -24,8 +30,8 @@ local jwt = require "auth/luajwt/luajwt" --[[
    ('', 'test-client', 'test-user', 
     PASSWORD('123'), '[{"pattern":"a/b/c"},{"pattern":"c/b/#"}]', 
                      '[{"pattern":"a/b/c"},{"pattern":"c/b/#"}]');
-]] -- NOTE THAT `PASSWORD()` NEEDS TO BE SUBSTITUTED ACCORDING TO THE HASHING METHOD -- 	allowed for this particular user. MQTT wildcards as well as the variable -- CONFIGURED IN `vmq_diversity.mysql.password_hash_method`. CHECK THE MYSQL DOCS TO -- 	substitution for %m (mountpoint), %c (client_id), %u (username) are allowed -- FIND THE MATCHING ONE AT https://dev.mysql.com/doc/refman/8.0/en/encryption-functions.html. -- 	inside a pattern. -- -- -- -- -- IF YOU USE THE SCHEMA PROVIDED ABOVE NOTHING HAS TO BE CHANGED IN THE -- FOLLOWING SCRIPT.
--- -- To insert a client ACL use a similar SQL statement: -- 	The JSON array passed as publish/subscribe ACL contains the topic patterns
+]] -- NOTE THAT `PASSWORD()` NEEDS TO BE SUBSTITUTED ACCORDING TO THE HASHING METHOD --         allowed for this particular user. MQTT wildcards as well as the variable -- CONFIGURED IN `vmq_diversity.mysql.password_hash_method`. CHECK THE MYSQL DOCS TO --      substitution for %m (mountpoint), %c (client_id), %u (username) are allowed -- FIND THE MATCHING ONE AT https://dev.mysql.com/doc/refman/8.0/en/encryption-functions.html. --         inside a pattern. -- -- -- -- -- IF YOU USE THE SCHEMA PROVIDED ABOVE NOTHING HAS TO BE CHANGED IN THE -- FOLLOWING SCRIPT.
+-- -- To insert a client ACL use a similar SQL statement: --    The JSON array passed as publish/subscribe ACL contains the topic patterns
 --
 --        results = mysql.execute(pool,ttern="activity/+/message", max_qos=1}
 -- In order to use this Lua plugin you must deploy the following database
@@ -59,6 +65,12 @@ function auth_on_register(reg)
       auth_token = "GUEST"
     end
     if not decoded["user_uid"] then
+      -- get redis streams
+      -- if inconsistencies remove stream keys
+      -- update banned_users
+      for stream_id, banned_users_table in pairs() do
+        
+      end 
       publish_acl = {
         {pattern = "activity/+/message", max_qos = 1},
         {pattern = "activity/+/follow", max_qos = 1},
@@ -77,7 +89,7 @@ function auth_on_register(reg)
         {pattern = "stream_stats/+/live_views", max_qos = 1}
       }
       mount_point = ""
-      cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
+      --cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
       return true
     end
     publish_acl = {
@@ -100,7 +112,7 @@ function auth_on_register(reg)
       {pattern = "stream_stats/+/live_views", max_qos = 1}
     }
     mount_point = ""
-    cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
+    --cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
     return true
   elseif reg.username == "1QGlx7a5OFdtigW4yuso6aH16cJvksyL" and reg.password == "kNfQZkklRofQaF3v2r9mZXncKriPPPcR" then
     publish_acl = {
@@ -115,7 +127,7 @@ function auth_on_register(reg)
       {pattern = "$share/sharename/stream_stats/+/device", max_qos = 1}
     }
     mount_point = ""
-    cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
+    --cache_insert(mount_point, reg.client_id, reg.username, publish_acl, subscribe_acl)
     return true
   else
     return false
@@ -135,27 +147,77 @@ function mysplit(str, sep)
   string.gsub(str, "[^" .. sep .. "]+", func)
   return res
 end
---function mysplit(inputstr, sep)
---        if sep == nil then
---                sep = ":"
---        end
---        local t={}
---        for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
---                table.insert(t, str)
---        end
---        return t
---end
--- function auth_on_publish(pub)
---   return next
--- end
---    return true
---end
---pool = "auth_custom"
---config = {
---    pool_id = pool
---}
 
---custom.ensure_pool(config)
+function equals(o1, o2)
+  if o1 == o2 then return true end
+  local o1Type = type(o1)
+  local o2Type = type(o2)
+  if o1Type ~= o2Type then return false end
+  if o1Type ~= 'table' then return false end
+
+  local keySet = {}
+
+  for key1, value1 in pairs(o1) do
+      local value2 = o2[key1]
+      if value2 == nil or equals(value1, value2) == false then
+          return false
+      end
+      keySet[key1] = true
+  end
+
+  for key2, _ in pairs(o2) do
+      if not keySet[key2] then return false end
+  end
+  return true
+end
+
+function cmd(cmd, expected_result)
+  result = redis.cmd("redis_dev", cmd)
+  return equals(result, expected_result)
+end
+
+-- redis keys will be deleted from chat server when stream terminates
+function auth_on_publish(pub)
+  local stream_id = string.match(pub.topic, "chat/(.+)/message")
+  if stream_id then
+    local mod_payload, count = string.gsub(pub.payload, "\\n*", "")
+    local decoded_payload = json.decode(mod_payload)
+    local user_uid
+
+    if not decoded_payload and string.len(decoded_payload["message"]) > 240 and not decoded_payload["profile"] then
+      return false
+    end
+
+    user_uid = decoded_payload["profile"]["uid"]
+
+    -- verify commands
+    if decoded_payload["profile"]["is_streamer"] then
+      -- if profile_uid is streamer check for ban in message
+      if string.match(decoded_payload["message"], "^/ban ") then
+        local tagged_profile = decoded_payload["tagged_profile"]
+        if not tagged_profile then
+          return false
+        end
+        cmd(string.format("hmset ban:%s %s %s", stream_id, tagged_profile["uid"], "1"), true)
+        return {topic = string.format("chat/%s/command", stream_id), payload = mod_payload, throttle = 1000 }
+      end
+    else
+      -- if not check if profile uid is banned if yes return false
+      if cmd(string.format("hget ban:%s %s", stream_id, user_uid), "1") then
+        return {topic = string.format("chat/%s/command", stream_id), payload = mod_payload, throttle = 1000 }
+      end
+    end
+    return {payload = mod_payload, throttle = 1000 }
+  end
+  return true
+end
+
+function auth_on_subscribe(sub)
+  return true
+end
+
 hooks = {
-  auth_on_register = auth_on_register
+  auth_on_register = auth_on_register,
+  auth_on_publish = auth_on_publish,
+  auth_on_subscribe = auth_on_subscribe
 }
